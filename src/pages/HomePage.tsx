@@ -87,7 +87,11 @@ const HomePage: React.FC = () => {
     ) => {
       setter((prev) => {
         const newSet = new Set(prev);
-        isFavorite ? newSet.add(id) : newSet.delete(id);
+        if (isFavorite) {
+          newSet.add(id);
+        } else {
+          newSet.delete(id);
+        }
         return newSet;
       });
     },
