@@ -27,21 +27,20 @@ const CompanyCard: React.FC<CompanyCardProps> = ({
       e.stopPropagation();
       const newFavoriteStatus = !isFavorite;
       setIsFavorite(newFavoriteStatus);
-      onFavoriteToggle?.(company.id, newFavoriteStatus);
+      onFavoriteToggle?.(company.display_name, newFavoriteStatus);
     },
-    [company.id, isFavorite, onFavoriteToggle]
+    [company.display_name, isFavorite, onFavoriteToggle]
   );
 
-  // Modified to handle both click and keyboard events
   const handleContainerInteraction = useCallback(
     (e: React.MouseEvent | React.KeyboardEvent) => {
       e.stopPropagation();
       if (e.type === "keydown" && (e as React.KeyboardEvent).key !== "Enter") {
         return;
       }
-      onLearnMore?.(company.id);
+      onLearnMore?.(company.display_name);
     },
-    [company.id, onLearnMore]
+    [company.display_name, onLearnMore]
   );
 
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
@@ -52,7 +51,7 @@ const CompanyCard: React.FC<CompanyCardProps> = ({
         w-full h-full flex items-center justify-center
         text-gray-400 font-bold text-lg
       ">
-        ${company.name.charAt(0).toUpperCase()}
+        ${company.display_name.charAt(0).toUpperCase()}
       </span>
     `;
   };
@@ -70,27 +69,20 @@ const CompanyCard: React.FC<CompanyCardProps> = ({
         <div className="flex justify-between items-start">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden">
-              {company.logo ? (
-                <img
-                  src={company.logo}
-                  alt={company.name}
-                  className="w-full h-full object-contain"
-                  onError={handleImageError}
-                />
-              ) : (
-                <span
-                  className="
+              {/* No direct logo URL in your type, so using a placeholder or initial */}
+              <span
+                className="
                   w-full h-full flex items-center justify-center
                   text-gray-400 font-bold text-lg
                 "
-                >
-                  {company.name.charAt(0).toUpperCase()}
-                </span>
-              )}
+              >
+                {company.display_name.charAt(0).toUpperCase()}
+              </span>
             </div>
             <div>
-              <h3 className="font-bold text-gray-900">{company.name}</h3>
-              <p className="text-sm text-gray-500">{company.industry}</p>
+              <h3 className="font-bold text-gray-900">
+                {company.display_name}
+              </h3>
             </div>
           </div>
           <button
@@ -110,16 +102,14 @@ const CompanyCard: React.FC<CompanyCardProps> = ({
         </div>
 
         <div className="mt-4">
-          <p className="text-sm text-gray-600 line-clamp-3">
-            {company.description || "No description available"}
-          </p>
+          <p className="text-sm text-gray-600 line-clamp-3"></p>
         </div>
 
         <div className="mt-4 pt-4 border-t border-gray-100">
           <motion.button
             onClick={(e: React.MouseEvent) => {
               e.stopPropagation();
-              onLearnMore?.(company.id);
+              onLearnMore?.(company.display_name);
             }}
             className="w-full bg-red-800 hover:bg-red-700 text-white font-medium text-sm px-4 py-2.5 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-800"
             whileHover={{ scale: 1.02 }}

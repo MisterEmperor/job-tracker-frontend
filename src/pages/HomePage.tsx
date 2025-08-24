@@ -1,15 +1,15 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import Header from "../components/Header";
 import SearchBar from "../components/SearchBar";
-import { dummyCompanies } from "../types/company";
 import type { Company } from "../types/company";
 import type { Job } from "../types/job";
-import { dummyJobs } from "../types/job";
+import { fetchJobs } from "../services/jobService";
 import JobCarousel from "../components/JobCarousel";
 import CompanyCarousel from "../components/CompanyCarousel";
 import Footer from "../components/Footer";
 
 const SEARCH_DEBOUNCE_DELAY = 300;
+
 const EMPTY_RESULTS_MESSAGE = {
   title: "No results found",
   description:
@@ -23,62 +23,72 @@ interface FilteredData {
 
 const HomePage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchInput, setSearchInput] = useState(""); // For debounced search
+  const [searchInput, setSearchInput] = useState("");
+  const [locationQuery, setLocationQuery] = useState("");
+  const [allJobs, setAllJobs] = useState<Job[]>([]);
+  const [allCompanies, setAllCompanies] = useState<Company[]>([]);
 
-  // Initialize favorites more efficiently
-  const [favoriteJobs, setFavoriteJobs] = useState<Set<string>>(() => {
-    return new Set(
-      dummyJobs.filter((job) => job.isFavorite).map((job) => job.id)
-    );
-  });
+  useEffect(() => {
+    const apiQuery = searchInput.replace(/\s+/g, "_");
+    fetchJobs(apiQuery)
+      .then((data) => {
+        setAllJobs(data);
 
+        const companyMap = new Map<string, Company>();
+
+        data.forEach((job) => {
+          const companyId = job.company.display_name;
+          if (!companyMap.has(companyId)) {
+            companyMap.set(companyId, {
+              id: companyId,
+              display_name: job.company.display_name,
+              __CLASS__: job.company.__CLASS__,
+            });
+          }
+        });
+
+        setAllCompanies(Array.from(companyMap.values()));
+      })
+      .catch((err) => console.error("Failed to fetch jobs", err));
+  }, [searchQuery]);
+
+  const [favoriteJobs, setFavoriteJobs] = useState<Set<string>>(new Set());
   const [favoriteCompanies, setFavoriteCompanies] = useState<Set<string>>(
-    () => {
-      return new Set(
-        dummyCompanies
-          .filter((company) => company.isFavorite)
-          .map((company) => company.id)
-      );
-    }
+    new Set()
   );
 
-  // Debounced search effect
-  React.useEffect(() => {
+  useEffect(() => {
     const timerId = setTimeout(() => {
-      setSearchQuery(searchInput);
+      // Replace spaces with underscores for API call
+      const apiQuery = searchInput.replace(/\s+/g, "_");
+      setSearchQuery(apiQuery);
     }, SEARCH_DEBOUNCE_DELAY);
-
     return () => clearTimeout(timerId);
   }, [searchInput]);
 
-  // Memoized filtered data with improved filtering logic
   const { filteredJobs, filteredCompanies }: FilteredData = useMemo(() => {
     if (!searchQuery) {
       return {
-        filteredJobs: dummyJobs,
-        filteredCompanies: dummyCompanies,
+        filteredJobs: allJobs,
+        filteredCompanies: allCompanies,
       };
     }
 
-    const lowerQuery = searchQuery.toLowerCase();
+    const localSearchTerm = searchQuery.replace(/_/g, " ").toLowerCase();
 
     return {
-      filteredJobs: dummyJobs.filter(
+      filteredJobs: allJobs.filter(
         (job) =>
-          job.title.toLowerCase().includes(lowerQuery) ||
-          job.company.toLowerCase().includes(lowerQuery) ||
-          job.description.toLowerCase().includes(lowerQuery)
+          job.title.toLowerCase().includes(localSearchTerm) ||
+          job.company.display_name.toLowerCase().includes(localSearchTerm) ||
+          job.description.toLowerCase().includes(localSearchTerm)
       ),
-      filteredCompanies: dummyCompanies.filter(
-        (company) =>
-          company.name.toLowerCase().includes(lowerQuery) ||
-          company.industry.toLowerCase().includes(lowerQuery) ||
-          company.description.toLowerCase().includes(lowerQuery)
+      filteredCompanies: allCompanies.filter((company) =>
+        company.display_name.toLowerCase().includes(localSearchTerm)
       ),
     };
-  }, [searchQuery]);
+  }, [searchQuery, allJobs, allCompanies]);
 
-  // Optimized favorite toggle handlers
   const toggleFavorite = useCallback(
     (
       setter: React.Dispatch<React.SetStateAction<Set<string>>>,
@@ -114,10 +124,8 @@ const HomePage: React.FC = () => {
 
   const handleLearnMore = useCallback((id: string, type: "job" | "company") => {
     console.log(`Viewing ${type}: ${id}`);
-    // Add navigation logic here
   }, []);
 
-  // Enhanced data with favorites
   const jobsWithFavorites = useMemo(
     () =>
       filteredJobs.map((job) => ({
@@ -131,39 +139,46 @@ const HomePage: React.FC = () => {
     () =>
       filteredCompanies.map((company) => ({
         ...company,
-        isFavorite: favoriteCompanies.has(company.id),
+        isFavorite: favoriteCompanies.has(company.display_name),
       })),
     [filteredCompanies, favoriteCompanies]
   );
 
-  // Search results count text
   const resultsText = useMemo(() => {
-    if (!searchQuery) return null;
+    if (!searchInput) return null;
 
     const jobCount = filteredJobs.length;
     const companyCount = filteredCompanies.length;
 
+    if (jobCount === 0 && companyCount === 0) return null;
+
     return (
       <p className="text-center text-sm text-gray-500 mt-2">
-        Showing {jobCount} job{jobCount !== 1 ? "s" : ""} and {companyCount}{" "}
-        compan
-        {companyCount !== 1 ? "ies" : "y"} matching "{searchQuery}"
+        {jobCount > 0 && (
+          <span>
+            Showing {jobCount} job{jobCount !== 1 ? "s" : ""}
+          </span>
+        )}
+        {jobCount > 0 && companyCount > 0 && <span> and </span>}
+        {companyCount > 0 && (
+          <span>
+            {companyCount} compan{companyCount !== 1 ? "ies" : "y"}
+          </span>
+        )}
+        {` matching "${searchInput}"`}
       </p>
     );
-  }, [searchQuery, filteredJobs.length, filteredCompanies.length]);
+  }, [searchInput, filteredJobs.length, filteredCompanies.length]);
 
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
 
       <main className="flex-grow px-6 md:px-20 py-10 space-y-12">
-        {/* Search Section */}
         <section className="w-full space-y-6">
           <SearchBar onSearch={setSearchInput} value={searchInput} />
-          {resultsText}
         </section>
 
-        {/* Jobs Section */}
         {filteredJobs.length > 0 && (
           <section className="w-full space-y-6">
             <h2 className="text-2xl font-bold text-gray-900">
@@ -174,10 +189,11 @@ const HomePage: React.FC = () => {
               onFavoriteToggle={handleJobFavoriteToggle}
               onLearnMore={(id) => handleLearnMore(id, "job")}
             />
+            {resultsText}
           </section>
         )}
 
-        {/* Companies Section */}
+        {/*
         {filteredCompanies.length > 0 && (
           <section className="w-full space-y-6">
             <h2 className="text-2xl font-bold text-gray-900">
@@ -190,8 +206,8 @@ const HomePage: React.FC = () => {
             />
           </section>
         )}
+        */}
 
-        {/* Empty State */}
         {searchQuery &&
           filteredJobs.length === 0 &&
           filteredCompanies.length === 0 && (

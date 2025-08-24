@@ -4,6 +4,8 @@ import {
   FaBookmark,
   FaMapMarkerAlt,
   FaMoneyBillWave,
+  FaClock,
+  FaFileContract,
 } from "react-icons/fa";
 import { motion } from "framer-motion";
 import type { Job } from "../types/job";
@@ -22,11 +24,34 @@ const JobCard: React.FC<JobCardProps> = ({
   onLearnMore,
 }) => {
   const [isFavorite, setIsFavorite] = useState(propIsFavorite);
+  const [timeSinceCreation, setTimeSinceCreation] = useState("");
 
   // Sync local state with props
   useEffect(() => {
     setIsFavorite(propIsFavorite);
   }, [propIsFavorite]);
+
+  // Calculate time since job creation
+  useEffect(() => {
+    if (job.created) {
+      const createdDate = new Date(job.created);
+      const now = new Date();
+      const diffInHours = Math.floor(
+        (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60)
+      );
+
+      if (diffInHours < 24) {
+        setTimeSinceCreation(
+          `${diffInHours} hour${diffInHours !== 1 ? "s" : ""} ago`
+        );
+      } else {
+        const diffInDays = Math.floor(diffInHours / 24);
+        setTimeSinceCreation(
+          `${diffInDays} day${diffInDays !== 1 ? "s" : ""} ago`
+        );
+      }
+    }
+  }, [job.created]);
 
   const handleFavoriteClick = useCallback(
     (e: React.MouseEvent) => {
@@ -39,7 +64,6 @@ const JobCard: React.FC<JobCardProps> = ({
     [job.id, isFavorite, onFavoriteToggle]
   );
 
-  // Unified handler for both click and keyboard events
   const handleContainerInteraction = useCallback(
     (e: React.MouseEvent | React.KeyboardEvent) => {
       e.stopPropagation();
@@ -59,19 +83,20 @@ const JobCard: React.FC<JobCardProps> = ({
         w-full h-full flex items-center justify-center
         text-gray-400 font-bold text-lg
       ">
-        ${job.company.charAt(0).toUpperCase()}
+        ${job.company.display_name.charAt(0).toUpperCase()}
       </span>
     `;
   };
 
   return (
     <motion.div
-      className="w-[280px] sm:w-[300px] flex-shrink-0 bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 hover:shadow-lg transition-all duration-300"
+      className="w-[280px] sm:w-[300px] flex-shrink-0 bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 hover:shadow-lg transition-all duration-300 cursor-pointer"
       whileHover={{ y: -5 }}
       role="button"
       tabIndex={0}
       onClick={handleContainerInteraction}
       onKeyDown={handleContainerInteraction}
+      aria-label={`View details for ${job.title} at ${job.company.display_name}`}
     >
       <div className="p-5">
         <div className="flex justify-between items-start">
@@ -80,9 +105,10 @@ const JobCard: React.FC<JobCardProps> = ({
               {job.logo ? (
                 <img
                   src={job.logo}
-                  alt={job.company}
+                  alt={job.company.display_name}
                   className="w-full h-full object-contain"
                   onError={handleImageError}
+                  loading="lazy"
                 />
               ) : (
                 <span
@@ -91,13 +117,15 @@ const JobCard: React.FC<JobCardProps> = ({
                   text-gray-400 font-bold text-lg
                 "
                 >
-                  {job.company.charAt(0).toUpperCase()}
+                  {job.company.display_name.charAt(0).toUpperCase()}
                 </span>
               )}
             </div>
             <div>
               <h3 className="font-bold text-gray-900">{job.title}</h3>
-              <p className="text-sm text-gray-500">{job.company}</p>
+              <p className="text-sm text-gray-500">
+                {job.company.display_name}
+              </p>
             </div>
           </div>
           <button
@@ -119,12 +147,32 @@ const JobCard: React.FC<JobCardProps> = ({
         <div className="mt-4 space-y-2">
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <FaMapMarkerAlt className="text-gray-400 flex-shrink-0" />
-            <span>{job.location || "Location not specified"}</span>
+            <span>{job.location.display_name || "Location not specified"}</span>
           </div>
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <FaMoneyBillWave className="text-gray-400 flex-shrink-0" />
-            <span>{job.salary || "Salary not disclosed"}</span>
+            <span>
+              {job.salary_min
+                ? `£${job.salary_min.toLocaleString("en-GB")}${
+                    job.salary_max && job.salary_max !== job.salary_min
+                      ? ` - £${job.salary_max.toLocaleString("en-GB")}`
+                      : ""
+                  }`
+                : "Salary not disclosed"}
+            </span>
           </div>
+          {job.contract_type && (
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <FaFileContract className="text-gray-400 flex-shrink-0" />
+              <span>{job.contract_type}</span>
+            </div>
+          )}
+          {timeSinceCreation && (
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <FaClock className="text-gray-400 flex-shrink-0" />
+              <span>Posted {timeSinceCreation}</span>
+            </div>
+          )}
         </div>
 
         <div className="mt-4">
@@ -137,7 +185,11 @@ const JobCard: React.FC<JobCardProps> = ({
           <motion.button
             onClick={(e: React.MouseEvent) => {
               e.stopPropagation();
-              onLearnMore?.(job.id);
+              if (job.redirect_url) {
+                window.open(job.redirect_url, "_blank");
+              } else {
+                onLearnMore?.(job.id);
+              }
             }}
             className="w-full bg-red-800 hover:bg-red-700 text-white font-medium text-sm px-4 py-2.5 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-800"
             whileHover={{ scale: 1.02 }}
