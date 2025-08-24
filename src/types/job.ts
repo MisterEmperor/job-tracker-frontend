@@ -1,74 +1,21 @@
+import type {Company} from "../types/company"
+import type {Location} from "../types/location"
+
 export interface Job {
   id: string;
   title: string;
-  company: string;
-  logo: string;
   description: string;
-  location: string;
-  salary: string;
-  type: 'Full-Time' | 'Part-Time' | 'Contract' | 'Remote';
-  isFavorite?: boolean;
+  created: string;
+  salary_min: number;
+  salary_max: number;
+  salary_is_predicted: string;
+  contract_type: string;
+  redirect_url: string;
+  adref: string;
+  latitude: number;
+  longitude: number;
+  company: Company;
+  location: Location;
+  logo: string;
+  isFavourite?: boolean;
 }
-
-export const dummyJobs: Job[] = [
-  {
-    id: "1",
-    title: 'Frontend Developer',
-    company: 'Tech Corp',
-    description: 'Build modern UIs with React and Tailwind.',
-    location: 'Remote',
-    salary: '$70,000 - $90,000',
-    type: 'Full-Time',
-    logo: ""
-  },
-  {
-    id: "2",
-    title: 'Backend Engineer',
-    company: 'CloudBase',
-    description: 'Design robust APIs and services using Node.js.',
-    location: 'New York, NY',
-    salary: '$80,000 - $110,000',
-    type: 'Full-Time',
-    logo: ""
-  },
-  {
-    id: "3",
-    title: 'Frontend Developer',
-    company: 'Tech Corp',
-    description: 'Build modern UIs with React and Tailwind.',
-    location: 'Remote',
-    salary: '$70,000 - $90,000',
-    type: 'Full-Time',
-    logo: ""
-  },
-  {
-    id: "4",
-    title: 'Backend Engineer',
-    company: 'CloudBase',
-    description: 'Design robust APIs and services using Node.js.',
-    location: 'New York, NY',
-    salary: '$80,000 - $110,000',
-    type: 'Full-Time',
-    logo: ""
-  },
-  {
-    id: "5",
-    title: 'Frontend Developer',
-    company: 'Tech Corp',
-    description: 'Build modern UIs with React and Tailwind.',
-    location: 'Remote',
-    salary: '$70,000 - $90,000',
-    type: 'Full-Time',
-    logo: ""
-  },
-  {
-    id: "6",
-    title: 'Backend Engineer',
-    company: 'CloudBase',
-    description: 'Design robust APIs and services using Node.js.',
-    location: 'New York, NY',
-    salary: '$80,000 - $110,000',
-    type: 'Full-Time',
-    logo: ""
-  },
-];

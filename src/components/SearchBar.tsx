@@ -3,9 +3,11 @@ import jobSearchImage from "../assets/images/ExampleJobImage.png";
 import { motion } from "framer-motion";
 
 interface SearchBarProps {
-  onSearch: (query: string) => void;
+  onSearch: (query: string, location?: string) => void;
   value?: string;
   isLoading?: boolean;
+  onLocationChange?: (location: string) => void;
+  locationValue?: string;
 }
 
 // Extracted styles for maintainability
